@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+SITE=${1?Error: no site ID}
+
+echo "This script will configure $SITE edge device"
+
+
+
+
