@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+
+# check if the reboot flag file exists.
+# We created this file before rebooting.
+if [ ! -f /reboot_tracker/reboot1 ]; then
+  echo "running script for the first time.."
+
+  SITEID=${1?Error: no site ID given}
+  echo "configuring $SITEID edge device"
+
+  # running script
+  swupd update
+
+  # Preparation for reboots
+  script="bash /persistent_edge_config"
+
+  # add this script to zsh so it gets triggered immediately after reboot
+  # change it to .bashrc if using bash shell
+  echo "$script" >> ~/.zshrc
+
+  # create a flag file to check if we are resuming from reboot.
+  mkdir reboot_tracker
+  sudo touch /reboot_tracker/reboot1
+
+  #reboot here
+  echo "rebooting for the first time.."
+  reboot
+
+  if [ ! -f /reboot_tracker/reboot2 ]; then
+    echo "running script after first reboot.."
+    swupd bundle-add network-basic
+    swupd bundle-add containers-basic
+    swupd bundle-add vim-minimal
+    swupd bundle-add ansible
+    systemctl mask $(sed -n -e 's#^/dev/\([0-9a-z]*\).*#dev-\1.swap#p' /proc/swaps) 2>/dev/null
+    swapoff -a
+
+    sudo touch /reboot_tracker/reboot2
+    #reboot here
+    echo "rebooting for the second time.."
+    reboot
+
+    if [ ! -f /reboot_tracker/reboot3 ]; then
+      echo "resuming script after second reboot.."
+      -s
+      mkdir -p /etc/sysctl.d/
+      tee /etc/sysctl.d/60-k8s.conf > /dev/null <<EOF
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.ipv4.ip_forward                 = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      EOF
+      systemctl restart systemd-sysctl
+      nmcli connection modify "Wired connection 1" \
+      ipv4.method "manual" \
+      ipv4.addresses "192.168.0.20/24" \
+      ipv4.gateway "192.168.0.1" \
+      ipv4.dns "8.8.8.8,1.1.1.1"
+      systemctl restart NetworkManager
+
+      sudo touch /reboot_tracker/reboot3
+      #reboot here
+      echo "rebooting for the third time.."
+      reboot
+
+      if [ ! -f /reboot_tracker/reboot4 ]; then
+        echo "resuming script after third reboot.."
+        -s
+        echo "127.0.0.1 localhost `hostname`" | sudo tee --append /etc/hosts
+        exit
+        swupd autoupdate --disable
+
+        sudo touch /reboot_tracker/reboot4
+        #reboot here
+        echo "rebooting for the fourth time.."
+        reboot
+
+else
+  mkdir /usr/local/bin
+  curl -sfL https://get.k3s.io | sh -
+  systemctl status k3s
+  echo "$SITEID edge device successfully configured!"
+
+  # Remove the line that we added in zshrc
+  sed -i '/bash/d' ~/.zshrc
+
+  # remove the temporary file that we created to check for reboot
+  sudo rm -f /reboot_tracker/reboot1
+  sudo rm -f /reboot_tracker/reboot2
+  sudo rm -f /reboot_tracker/reboot3
+  sudo rm -f /reboot_tracker/reboot4
+
+fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  # Remove the line that we added in zshrc
+  sed -i '/bash/d' ~/.zshrc
+
+  # remove the temporary file that we created to check for reboot
+  sudo rm -f /var/run/resume-after-reboot
+
+  # continue with rest of the script
+fi
+
+
+
+-s
+echo "127.0.0.1 localhost `hostname`" | sudo tee --append /etc/hosts
+exit
+swupd autoupdate --disable
+reboot
+mkdir /usr/local/bin
+curl -sfL https://get.k3s.io | sh -
+systemctl status k3s
+echo "$SITEID edge device successfully configured!
