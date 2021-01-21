@@ -2,55 +2,56 @@
 
 # check if the reboot flag file exists.
 # We created this file before rebooting.
-if [ ! -f /reboot_tracker/reboot1 ]; then
+if [ ! -f reboot1 ]; then
   echo "running script for the first time.."
 
   SITEID=${1?Error: no site ID given}
   echo "configuring $SITEID edge device"
 
-  # running script
-  swupd update
-
   # Preparation for reboots
-  script="bash /persistent_edge_config"
+  script="bash /persistent_edge_config_test"
 
   # add this script to zsh so it gets triggered immediately after reboot
   # change it to .bashrc if using bash shell
   echo "$script" >> ~/.zshrc
 
   # create a flag file to check if we are resuming from reboot.
-  mkdir reboot_tracker
-  sudo touch /reboot_tracker/reboot1
+  touch reboot1
 
   #reboot here
   echo "rebooting for the first time.."
+  sleep 20
   reboot
-
-  if [ ! -f /reboot_tracker/reboot2 ]; then
-    echo "running script after first reboot.."
-    sudo touch /reboot_tracker/reboot2
+  else 
+  if [ ! -f reboot2 ]; then
+    echo "running script for the second time.."
+    sleep 20
+    touch reboot2
     #reboot here
     echo "rebooting for the second time.."
+    sleep 10
     reboot
-    if [ ! -f /reboot_tracker/reboot3 ]; then
+    else
+    if [ ! -f reboot3 ]; then
       echo "resuming script after second reboot.."
-      sudo touch /reboot_tracker/reboot3
+      sleep 10
+      touch reboot3
       #reboot here
       echo "rebooting for the third time.."
+      sleep 10
       reboot
-      if [ ! -f /reboot_tracker/reboot4 ]; then
+      else
+      if [ ! -f reboot4 ]; then
         echo "resuming script after third reboot.."
-        sudo touch /reboot_tracker/reboot4
+        sleep 10
+        touch reboot4
         #reboot here
         echo "rebooting for the fourth time.."
+        sleep 10
         reboot
       else
         echo "$SITEID edge device reboot successful!"
         # remove the temporary file that we created to check for reboot
-        sudo rm -f /reboot_tracker/reboot1
-        sudo rm -f /reboot_tracker/reboot2
-        sudo rm -f /reboot_tracker/reboot3
-        sudo rm -f /reboot_tracker/reboot4
       fi
     fi
   fi
