@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+
+# to track the number of times this script is ran, we create a file called reboot per reboot 
+# if reboot1 does not exist, this is the first time we're running the script
+
+if [ ! -f reboot1 ]; then
+  echo "TO CONFIGURE THIS EDGE DEVICE, RUN THIS SCRIPT 4 TIMES"
+  echo "RUNNING SCRIPT 1/4 TIMES"
+  echo "configuring edge device.."
+  sleep 5
+
+  swupd update
+
+  # create a flag file to check if we are resuming from reboot, then reboot
+  touch reboot1
+  echo "rebooting.. RUN SCRIPT 3 TIMES AFTER REBOOT"
+  sleep 5
+  reboot
+  else 
+  if [ ! -f reboot2 ]; then
+    echo "RUNNING SCRIPT 2/4 TIMES"
+    sleep 5
+    swupd bundle-add network-basic
+    swupd bundle-add containers-basic
+    swupd bundle-add vim-minimal
+    swupd bundle-add ansible
+    Turn off swap
+    systemctl mask $(sed -n -e 's#^/dev/\([0-9a-z]*\).*#dev-\1.swap#p' /proc/swaps) 2>/dev/null
+    swapoff -a
+
+    touch reboot2
+    #reboot here
+    echo "rebooting.. RUN SCRIPT 2 TIMES AFTER REBOOT"
+    sleep 5
+    reboot
+    else
+    if [ ! -f reboot3 ]; then
+      echo "RUNNING SCRIPT 3/4 TIMES"
+      sleep 5
+
+      -s
+      mkdir -p /etc/sysctl.d/
+      tee /etc/sysctl.d/60-k8s.conf > /dev/null <<EOF
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.ipv4.ip_forward                 = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      EOF
+
+      systemctl restart systemd-sysctl
+      nmcli connection modify "Wired connection 1" \
+      ipv4.method "manual" \
+      ipv4.addresses "192.168.0.20/24" \
+      ipv4.gateway "192.168.0.1" \
+      ipv4.dns "8.8.8.8,1.1.1.1"
+
+      systemctl restart NetworkManager
+
+      touch reboot3
+      #reboot here
+      echo "rebooting.. RUN SCRIPT 1 TIME AFTER REBOOT"
+      sleep 5
+      reboot
+      else
+      if [ ! -f reboot4 ]; then
+        echo "resuming script after third reboot.."
+        sleep 10
+        touch reboot4
+        #reboot here
+        echo "rebooting for the fourth time.."
+        sleep 10
+        reboot
+      else
+        echo "$SITEID edge device reboot successful!"
+        # remove the temporary file that we created to check for reboot
+      fi
+    fi
+  fi
+fi
+
