@@ -63,8 +63,7 @@ EOF
         echo "RUNNING SCRIPT 4/6 TIMES"
         sleep 5
 
-        echo "127.0.0.1 localhost `hostname`" | sudo tee --append /etc/hosts
-        exit
+        echo "127.0.0.1 localhost `hostname`" | tee --append /etc/hosts
         swupd autoupdate --disable
 
         touch reboot4
@@ -72,24 +71,24 @@ EOF
         echo "rebooting.. RUN SCRIPT 2 TIMES AFTER REBOOT"
         sleep 5
         reboot
-	else 
-	if [ ! -f reboot5 ]; then
-	  echo "RUNNING SCRIPT 5/6 TIMES"
-	  sleep 5
+	    else
+	    if [ ! -f reboot5 ]; then
+	      echo "RUNNING SCRIPT 5/6 TIMES"
+	      sleep 5
 
-	  mkdir /usr/local/bin
-	  curl -sfL https://get.k3s.io | sh -
-	  watch kubectl get pods --all-namespaces
-	  # reboot here
-	  echo "rebooting.. RUN SCRIPT 1 MORE TIME AFTER REBOOT"
-	  touch reboot5
-	  reboot       
-	else
-	   echo "RUNNING THE SCRIPT FOR THE FINAL TIME 6/6"
-	   sleep 5
-	   rm reboot1 reboot2 reboot3 reboot4 reboot5
-	   echo "DEVICE SUCCESSFULLY CONFIGURED!!!"
-	   sleep 10
+	      mkdir /usr/local/bin
+	      curl -sfL https://get.k3s.io | sh -
+	      # reboot here
+	      echo "rebooting.. RUN SCRIPT 1 MORE TIME AFTER REBOOT"
+	      touch reboot5
+	      reboot
+	      else
+	      echo "RUNNING THE SCRIPT FOR THE FINAL TIME 6/6"
+	      sleep 5
+	      rm reboot1 reboot2 reboot3 reboot4 reboot5
+	      echo "DEVICE SUCCESSFULLY CONFIGURED!!!"
+	      sleep 10
+		fi
       fi
     fi
   fi
